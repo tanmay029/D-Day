@@ -1,6 +1,12 @@
 import 'package:dooms_day/pages/task_details.dart';
+import 'package:dooms_day/widget/AddTaskDialog.dart';
+import 'package:dooms_day/widget/ConfirmDeleteDialog.dart';
+import 'package:dooms_day/widget/CustomCalendar.dart';
+import 'package:dooms_day/widget/TaskListForSelectedDay.dart';
+import 'package:dooms_day/widget/TaskListView.dart';
+import 'package:dooms_day/widget/bottomNavigationBar.dart';
+import 'package:dooms_day/widget/month_custom_calendar.dart';
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -31,24 +37,9 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Delete Task"),
-          content: Text("Are you sure you want to delete '${task['task']}'?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () {
-                _removeTask(task);
-                Navigator.of(context).pop(); // Close dialog after deleting
-              },
-              child: Text("Delete", style: TextStyle(color: Colors.red)),
-            ),
-          ],
+        return ConfirmDeleteDialog(
+          taskName: task['task'],
+          onDelete: () => _removeTask(task),
         );
       },
     );
@@ -130,84 +121,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showAddTaskDialog() {
-    TextEditingController taskController = TextEditingController();
-    TextEditingController dateController = TextEditingController();
-    TextEditingController timeController = TextEditingController();
-
-    Future<void> _selectDate() async {
-      DateTime? pickedDate = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(2000),
-        lastDate: DateTime(2100),
-      );
-      if (pickedDate != null) {
-        dateController.text =
-            "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-      }
-    }
-
-    Future<void> _selectTime() async {
-      TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-      if (pickedTime != null) {
-        timeController.text = pickedTime.format(context);
-      }
-    }
-
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Task'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                  controller: taskController,
-                  decoration: const InputDecoration(labelText: 'Task Name')),
-              TextField(
-                controller: dateController,
-                decoration: const InputDecoration(labelText: 'Due Date'),
-                readOnly: true,
-                onTap: _selectDate,
-              ),
-              TextField(
-                controller: timeController,
-                decoration: const InputDecoration(labelText: 'Due Time'),
-                readOnly: true,
-                onTap: _selectTime,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (taskController.text.isNotEmpty &&
-                    dateController.text.isNotEmpty &&
-                    timeController.text.isNotEmpty) {
-                  setState(() {
-                    tasks.add({
-                      'task': taskController.text,
-                      'date': dateController.text,
-                      'time': timeController.text,
-                      'done': false,
-                    });
-                  });
-                  _saveTasks();
-                  _loadTasksForMonth();
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Add Task'),
-            ),
-          ],
+        return AddTaskDialog(
+          onTaskAdded: (task, date, time) {
+            setState(() {
+              tasks.add(
+                  {'task': task, 'date': date, 'time': time, 'done': false});
+            });
+            _saveTasks();
+            _loadTasksForMonth();
+          },
         );
       },
     );
@@ -255,205 +180,84 @@ class _HomePageState extends State<HomePage> {
                 child: _isMonthlySelected
                     ? SingleChildScrollView(
                         child: Column(
-                        children: [
-                          TableCalendar(
-                            firstDay: DateTime.utc(2000, 1, 1),
-                            lastDay: DateTime.utc(2100, 12, 31),
-                            focusedDay: _focusedDay,
-                            selectedDayPredicate: (day) =>
-                                isSameDay(_selectedDay, day),
-                            onDaySelected: (selectedDay, focusedDay) {
-                              setState(() {
-                                _selectedDay = selectedDay;
-                                _focusedDay = focusedDay;
-                              });
-                            },
-                            onPageChanged: (focusedDay) {
-                              // 🔹 UPDATED: Update tasks when month changes
-                              setState(() {
-                                _focusedDay = focusedDay;
-                              });
-                              _loadTasksForMonth();
-                            },
-                            calendarFormat: CalendarFormat.month,
-                            eventLoader: (day) =>
-                                _getTaskEvents()[
-                                    DateTime(day.year, day.month, day.day)] ??
-                                [],
-                            calendarStyle: CalendarStyle(
-                              selectedDecoration: BoxDecoration(
-                                  color: Colors.blueAccent,
-                                  shape: BoxShape.circle),
-                              todayDecoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.3),
-                                  shape: BoxShape.circle),
-                              markersAlignment: Alignment.bottomCenter,
+                          children: [
+                            CustomCalendar2(
+                              focusedDay: _focusedDay,
+                              selectedDay: _selectedDay,
+                              onDaySelected: (selectedDay, focusedDay) {
+                                setState(() {
+                                  _selectedDay = selectedDay;
+                                  _focusedDay = focusedDay;
+                                });
+                              },
+                              onPageChanged: (focusedDay) {
+                                setState(() {
+                                  _focusedDay = focusedDay;
+                                });
+                                _loadTasksForMonth();
+                              },
+                              getTaskEvents: _getTaskEvents,
                             ),
-                            daysOfWeekStyle: DaysOfWeekStyle(
-                              weekendStyle: TextStyle(color: Colors.red),
-                            ),
-                            headerStyle: HeaderStyle(
-                              formatButtonVisible: false,
-                              titleCentered: true,
-                            ),
-                            calendarBuilders: CalendarBuilders(
-                              markerBuilder: (context, date, events) {
-                                if (events.isNotEmpty) {
-                                  return Positioned(
-                                    bottom: 1,
-                                    child: Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red, // Dot color
-                                        shape: BoxShape.circle,
-                                      ),
+                            const SizedBox(height: 20),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text("This Month",
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold)),
+                                  ElevatedButton.icon(
+                                    onPressed: _showAddTaskDialog,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text("Add Task"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blueAccent,
+                                      foregroundColor: Colors.white,
                                     ),
-                                  );
-                                }
-                                return null;
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TaskListView(
+                              tasks: tasksForSelectedMonth,
+                              onTaskTap: (task) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        TaskDetailsPage(task: task),
+                                  ),
+                                );
+                              },
+                              onTaskToggle: (taskName) {
+                                _toggleTaskDone(taskName);
+                              },
+                              onDeleteTask: (task) {
+                                _confirmDeleteTask(task);
                               },
                             ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // 🔹 Added Row with "Add Task" Button in Monthly Section
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text("This Month",
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                                ElevatedButton.icon(
-                                  onPressed: _showAddTaskDialog,
-                                  icon: const Icon(Icons.add),
-                                  label: const Text("Add Task"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blueAccent,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: tasksForSelectedMonth.length,
-                            itemBuilder: (context, index) {
-                              final task = tasksForSelectedMonth[index];
-
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TaskDetailsPage(task: task),
-                                    ),
-                                  );
-                                },
-                                child: Card(
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10)),
-                                  elevation: 3,
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  child: ListTile(
-                                    leading: Checkbox(
-                                      value: task['done'],
-                                      onChanged: (bool? value) {
-                                        _toggleTaskDone(task['task']);
-                                      },
-                                    ),
-                                    title: Text(
-                                      task['task']!,
-                                      style: TextStyle(
-                                        decoration: task['done']
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                        "Due: ${task['date']} at ${task['time']}",
-                                        style: const TextStyle(fontSize: 14)),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () {
-                                        _confirmDeleteTask(task);
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ))
+                          ],
+                        ),
+                      )
                     : Column(
                         children: [
-                          TableCalendar(
-                            firstDay: DateTime.utc(2000, 1, 1),
-                            lastDay: DateTime.utc(2100, 12, 31),
+                          CustomCalendar(
                             focusedDay: _focusedDay,
-                            selectedDayPredicate: (day) =>
-                                isSameDay(_selectedDay, day),
+                            selectedDay: _selectedDay,
                             onDaySelected: (selectedDay, focusedDay) {
                               setState(() {
                                 _selectedDay = selectedDay;
                                 _focusedDay = focusedDay;
                               });
                             },
-                            calendarFormat: CalendarFormat.month,
-                            eventLoader: (day) =>
-                                _getTaskEvents()[
-                                    DateTime(day.year, day.month, day.day)] ??
-                                [],
-                            calendarStyle: CalendarStyle(
-                              selectedDecoration: BoxDecoration(
-                                  color: Colors.blueAccent,
-                                  shape: BoxShape.circle),
-                              todayDecoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.3),
-                                  shape: BoxShape.circle),
-                              markersAlignment: Alignment.bottomCenter,
-                            ),
-                            daysOfWeekStyle: DaysOfWeekStyle(
-                              weekendStyle: TextStyle(color: Colors.red),
-                            ),
-                            headerStyle: HeaderStyle(
-                              formatButtonVisible: false,
-                              titleCentered: true,
-                            ),
-                            calendarBuilders: CalendarBuilders(
-                              markerBuilder: (context, date, events) {
-                                if (events.isNotEmpty) {
-                                  return Positioned(
-                                    bottom: 1,
-                                    child: Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red, // Dot color
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return null;
-                              },
-                            ),
+                            getTaskEvents: _getTaskEvents,
                           ),
                           const SizedBox(height: 20),
-
-                          // 🔹 Added Row with "Add Task" Button
                           Padding(
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 16.0),
@@ -478,55 +282,24 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                           ),
-
                           const SizedBox(height: 10),
-
                           Expanded(
-                            child: ListView.builder(
-                              itemCount: _getTasksForSelectedDay().length,
-                              itemBuilder: (context, index) {
-                                final task = _getTasksForSelectedDay()[index];
-
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 5),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              TaskDetailsPage(task: task),
-                                        ),
-                                      );
-                                    },
-                                    child: ListTile(
-                                      leading: Checkbox(
-                                        value: task['done'],
-                                        onChanged: (bool? value) {
-                                          _toggleTaskDone(task['task']);
-                                        },
-                                      ),
-                                      title: Text(
-                                        task['task'],
-                                        style: TextStyle(
-                                          decoration: task['done']
-                                              ? TextDecoration.lineThrough
-                                              : TextDecoration.none,
-                                        ),
-                                      ),
-                                      subtitle: Text("Due: ${task['time']}",
-                                          style: const TextStyle(fontSize: 14)),
-                                      trailing: IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () {
-                                          _confirmDeleteTask(task);
-                                        },
-                                      ),
-                                    ),
+                            child: TaskListForSelectedDay(
+                              tasks: _getTasksForSelectedDay(),
+                              onTaskTap: (task) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        TaskDetailsPage(task: task),
                                   ),
                                 );
+                              },
+                              onTaskToggle: (taskName) {
+                                _toggleTaskDone(taskName);
+                              },
+                              onDeleteTask: (task) {
+                                _confirmDeleteTask(task);
                               },
                             ),
                           ),
@@ -537,21 +310,9 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTapped,
-        type: BottomNavigationBarType.fixed, // Ensures visibility of all items
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: "Alerts",
-          ),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: "Settings"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
       ),
     );
   }
