@@ -1,7 +1,8 @@
-// ignore_for_file: sort_child_properties_last, library_private_types_in_public_api
-
+import 'package:dooms_day/pages/task_details.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,27 +17,51 @@ class _HomePageState extends State<HomePage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  // List of tasks with a "done" field for the checkbox state
-  List<Map<String, dynamic>> tasks = [
-    {
-      "task": "Complete Flutter project",
-      "date": "2025-02-20",
-      "time": "5:00 PM",
-      "done": false
-    },
-    {
-      "task": "Attend team meeting",
-      "date": "2025-02-22",
-      "time": "3:00 PM",
-      "done": false
-    },
-    {
-      "task": "Finish reading book",
-      "date": "2025-02-25",
-      "time": "9:00 PM",
-      "done": false
-    },
-  ];
+  List<Map<String, dynamic>> tasks = [];
+  List<Map<String, dynamic>> tasksForSelectedMonth = [];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadTasks();
+    });
+  }
+
+  void _confirmDeleteTask(Map<String, dynamic> task) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Task"),
+          content: Text("Are you sure you want to delete '${task['task']}'?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                _removeTask(task);
+                Navigator.of(context).pop(); // Close dialog after deleting
+              },
+              child: Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _removeTask(Map<String, dynamic> task) {
+    setState(() {
+      tasks.removeWhere(
+          (t) => t['task'] == task['task'] && t['date'] == task['date']);
+    });
+    _saveTasks(); // Save updated task list
+    _loadTasksForMonth(); // Refresh the monthly view
+  }
 
   void _onBottomNavTapped(int index) {
     setState(() {
@@ -44,14 +69,66 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Function to toggle the "done" status of a task
-  void _toggleTaskDone(int index) {
+  Future<void> _saveTasks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String tasksJson = jsonEncode(tasks);
+    await prefs.setString('tasks', tasksJson);
+  }
+
+  Future<void> _loadTasks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? tasksJson = prefs.getString('tasks');
+    if (tasksJson != null) {
+      setState(() {
+        tasks = List<Map<String, dynamic>>.from(jsonDecode(tasksJson));
+      });
+      _loadTasksForMonth(); // 🔹 UPDATED: Load tasks for selected month
+    }
+  }
+
+  void _loadTasksForMonth() {
     setState(() {
-      tasks[index]['done'] = !tasks[index]['done'];
+      tasksForSelectedMonth = tasks.where((task) {
+        try {
+          // Ensure proper date parsing
+          DateTime taskDate = DateTime.parse(task['date']);
+
+          // Match only tasks for the currently selected month & year
+          return taskDate.year == _focusedDay.year &&
+              taskDate.month == _focusedDay.month;
+        } catch (e) {
+          print("Error parsing date: ${task['date']} - $e");
+          return false;
+        }
+      }).toList();
+
+      // Debugging log
+      print(
+          "Loaded tasks for ${_focusedDay.month}/${_focusedDay.year}: $tasksForSelectedMonth");
     });
   }
 
-  // Function to show the dialog for adding a new task
+  void _toggleTaskDone(String taskName) {
+    setState(() {
+      int originalIndex = tasks.indexWhere((task) => task['task'] == taskName);
+      if (originalIndex != -1) {
+        tasks[originalIndex]['done'] = !tasks[originalIndex]['done'];
+      }
+    });
+    _saveTasks();
+    _loadTasksForMonth(); // 🔹 UPDATED: Refresh filtered tasks after toggling
+  }
+
+  Map<DateTime, List<Map<String, dynamic>>> _getTaskEvents() {
+    Map<DateTime, List<Map<String, dynamic>>> events = {};
+    for (var task in tasks) {
+      DateTime taskDate = DateTime.parse(task['date']);
+      events[taskDate] = events[taskDate] ?? [];
+      events[taskDate]!.add(task);
+    }
+    return events;
+  }
+
   void _showAddTaskDialog() {
     TextEditingController taskController = TextEditingController();
     TextEditingController dateController = TextEditingController();
@@ -65,9 +142,8 @@ class _HomePageState extends State<HomePage> {
         lastDate: DateTime(2100),
       );
       if (pickedDate != null) {
-        setState(() {
-          dateController.text = pickedDate.toLocal().toString().split(' ')[0];
-        });
+        dateController.text =
+            "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
       }
     }
 
@@ -77,9 +153,7 @@ class _HomePageState extends State<HomePage> {
         initialTime: TimeOfDay.now(),
       );
       if (pickedTime != null) {
-        setState(() {
-          timeController.text = pickedTime.format(context);
-        });
+        timeController.text = pickedTime.format(context);
       }
     }
 
@@ -87,23 +161,22 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add New Task'),
+          title: const Text('Add New Task'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: taskController,
-                decoration: InputDecoration(labelText: 'Task Name'),
-              ),
+                  controller: taskController,
+                  decoration: const InputDecoration(labelText: 'Task Name')),
               TextField(
                 controller: dateController,
-                decoration: InputDecoration(labelText: 'Due Date'),
+                decoration: const InputDecoration(labelText: 'Due Date'),
                 readOnly: true,
                 onTap: _selectDate,
               ),
               TextField(
                 controller: timeController,
-                decoration: InputDecoration(labelText: 'Due Time'),
+                decoration: const InputDecoration(labelText: 'Due Time'),
                 readOnly: true,
                 onTap: _selectTime,
               ),
@@ -111,10 +184,8 @@ class _HomePageState extends State<HomePage> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -129,10 +200,12 @@ class _HomePageState extends State<HomePage> {
                       'done': false,
                     });
                   });
+                  _saveTasks();
+                  _loadTasksForMonth();
                   Navigator.of(context).pop();
                 }
               },
-              child: Text('Add Task'),
+              child: const Text('Add Task'),
             ),
           ],
         );
@@ -149,119 +222,181 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Monthly & Daily View"),
-        centerTitle: true,
-      ),
+          title: const Text("Tasks"),
+          centerTitle: true,
+          backgroundColor: Colors.blueAccent),
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isMonthlySelected = true;
-                    });
-                  },
-                  child: Text("Monthly"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isMonthlySelected ? Colors.blue : Colors.grey,
-                  ),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isMonthlySelected = false;
-                    });
-                  },
-                  child: Text("Daily"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        !_isMonthlySelected ? Colors.blue : Colors.grey,
-                  ),
-                ),
+            const SizedBox(height: 20),
+            ToggleButtons(
+              isSelected: [_isMonthlySelected, !_isMonthlySelected],
+              onPressed: (int index) {
+                setState(() {
+                  _isMonthlySelected = index == 0;
+                });
+              },
+              borderRadius: BorderRadius.circular(10),
+              borderColor: Colors.blue,
+              selectedBorderColor: Colors.blueAccent,
+              fillColor: Colors.blue.withOpacity(0.1),
+              children: const [
+                Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("Monthly")),
+                Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("Daily"))
               ],
             ),
-            SizedBox(height: 20),
-            Flexible(
+            const SizedBox(height: 20),
+            Expanded(
               child: Center(
                 child: _isMonthlySelected
                     ? SingleChildScrollView(
                         child: Column(
-                          children: [
-                            TableCalendar(
-                              firstDay: DateTime.utc(2000, 1, 1),
-                              lastDay: DateTime.utc(2100, 12, 31),
-                              focusedDay: _focusedDay,
-                              selectedDayPredicate: (day) {
-                                return isSameDay(_selectedDay, day);
-                              },
-                              onDaySelected: (selectedDay, focusedDay) {
-                                setState(() {
-                                  _selectedDay = selectedDay;
-                                  _focusedDay = focusedDay;
-                                });
-                              },
-                              calendarFormat: CalendarFormat.month,
+                        children: [
+                          TableCalendar(
+                            firstDay: DateTime.utc(2000, 1, 1),
+                            lastDay: DateTime.utc(2100, 12, 31),
+                            focusedDay: _focusedDay,
+                            selectedDayPredicate: (day) =>
+                                isSameDay(_selectedDay, day),
+                            onDaySelected: (selectedDay, focusedDay) {
+                              setState(() {
+                                _selectedDay = selectedDay;
+                                _focusedDay = focusedDay;
+                              });
+                            },
+                            onPageChanged: (focusedDay) {
+                              // 🔹 UPDATED: Update tasks when month changes
+                              setState(() {
+                                _focusedDay = focusedDay;
+                              });
+                              _loadTasksForMonth();
+                            },
+                            calendarFormat: CalendarFormat.month,
+                            eventLoader: (day) =>
+                                _getTaskEvents()[
+                                    DateTime(day.year, day.month, day.day)] ??
+                                [],
+                            calendarStyle: CalendarStyle(
+                              selectedDecoration: BoxDecoration(
+                                  color: Colors.blueAccent,
+                                  shape: BoxShape.circle),
+                              todayDecoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  shape: BoxShape.circle),
+                              markersAlignment: Alignment.bottomCenter,
                             ),
-                            SizedBox(height: 20),
-                            // "This Month" Section
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "This Month",
+                            daysOfWeekStyle: DaysOfWeekStyle(
+                              weekendStyle: TextStyle(color: Colors.red),
+                            ),
+                            headerStyle: HeaderStyle(
+                              formatButtonVisible: false,
+                              titleCentered: true,
+                            ),
+                            calendarBuilders: CalendarBuilders(
+                              markerBuilder: (context, date, events) {
+                                if (events.isNotEmpty) {
+                                  return Positioned(
+                                    bottom: 1,
+                                    child: Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red, // Dot color
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 🔹 Added Row with "Add Task" Button in Monthly Section
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text("This Month",
                                     style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
+                                ElevatedButton.icon(
+                                  onPressed: _showAddTaskDialog,
+                                  icon: const Icon(Icons.add),
+                                  label: const Text("Add Task"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueAccent,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: tasksForSelectedMonth.length,
+                            itemBuilder: (context, index) {
+                              final task = tasksForSelectedMonth[index];
+
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TaskDetailsPage(task: task),
+                                    ),
+                                  );
+                                },
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                  elevation: 3,
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  child: ListTile(
+                                    leading: Checkbox(
+                                      value: task['done'],
+                                      onChanged: (bool? value) {
+                                        _toggleTaskDone(task['task']);
+                                      },
+                                    ),
+                                    title: Text(
+                                      task['task']!,
+                                      style: TextStyle(
+                                        decoration: task['done']
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                        "Due: ${task['date']} at ${task['time']}",
+                                        style: const TextStyle(fontSize: 14)),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () {
+                                        _confirmDeleteTask(task);
+                                      },
                                     ),
                                   ),
-                                  SizedBox(height: 10),
-                                  // List of tasks with checkboxes
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    itemCount: tasks.length,
-                                    itemBuilder: (context, index) {
-                                      final task = tasks[index];
-                                      return Card(
-                                        margin: EdgeInsets.only(bottom: 10),
-                                        child: ListTile(
-                                          leading: Checkbox(
-                                            value: task['done'],
-                                            onChanged: (bool? value) {
-                                              _toggleTaskDone(index);
-                                            },
-                                          ),
-                                          title: Text(
-                                            task['task']!,
-                                            style: TextStyle(
-                                              decoration: task['done']
-                                                  ? TextDecoration.lineThrough
-                                                  : TextDecoration.none,
-                                            ),
-                                          ),
-                                          subtitle: Text(
-                                            "Due: ${task['date']} at ${task['time']}",
-                                            style: TextStyle(fontSize: 14),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ))
                     : Column(
                         children: [
                           TableCalendar(
@@ -277,37 +412,119 @@ class _HomePageState extends State<HomePage> {
                               });
                             },
                             calendarFormat: CalendarFormat.month,
+                            eventLoader: (day) =>
+                                _getTaskEvents()[
+                                    DateTime(day.year, day.month, day.day)] ??
+                                [],
+                            calendarStyle: CalendarStyle(
+                              selectedDecoration: BoxDecoration(
+                                  color: Colors.blueAccent,
+                                  shape: BoxShape.circle),
+                              todayDecoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  shape: BoxShape.circle),
+                              markersAlignment: Alignment.bottomCenter,
+                            ),
+                            daysOfWeekStyle: DaysOfWeekStyle(
+                              weekendStyle: TextStyle(color: Colors.red),
+                            ),
+                            headerStyle: HeaderStyle(
+                              formatButtonVisible: false,
+                              titleCentered: true,
+                            ),
+                            calendarBuilders: CalendarBuilders(
+                              markerBuilder: (context, date, events) {
+                                if (events.isNotEmpty) {
+                                  return Positioned(
+                                    bottom: 1,
+                                    child: Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red, // Dot color
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return null;
+                              },
+                            ),
                           ),
-                          SizedBox(height: 20),
-                          Text(
-                              "Tasks for ${_selectedDay?.toLocal().toString().split(' ')[0] ?? "Today"}",
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 20),
+
+                          // 🔹 Added Row with "Add Task" Button
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Tasks for ${_selectedDay?.toLocal().toString().split(' ')[0] ?? "Today"}",
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: _showAddTaskDialog,
+                                  icon: const Icon(Icons.add),
+                                  label: const Text("Add Task"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueAccent,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
                           Expanded(
                             child: ListView.builder(
                               itemCount: _getTasksForSelectedDay().length,
                               itemBuilder: (context, index) {
                                 final task = _getTasksForSelectedDay()[index];
+
                                 return Card(
-                                  margin: EdgeInsets.symmetric(
+                                  margin: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 5),
-                                  child: ListTile(
-                                    leading: Checkbox(
-                                      value: task['done'],
-                                      onChanged: (bool? value) =>
-                                          _toggleTaskDone(index),
-                                    ),
-                                    title: Text(
-                                      task['task'],
-                                      style: TextStyle(
-                                        decoration: task['done']
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              TaskDetailsPage(task: task),
+                                        ),
+                                      );
+                                    },
+                                    child: ListTile(
+                                      leading: Checkbox(
+                                        value: task['done'],
+                                        onChanged: (bool? value) {
+                                          _toggleTaskDone(task['task']);
+                                        },
+                                      ),
+                                      title: Text(
+                                        task['task'],
+                                        style: TextStyle(
+                                          decoration: task['done']
+                                              ? TextDecoration.lineThrough
+                                              : TextDecoration.none,
+                                        ),
+                                      ),
+                                      subtitle: Text("Due: ${task['time']}",
+                                          style: const TextStyle(fontSize: 14)),
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          _confirmDeleteTask(task);
+                                        },
                                       ),
                                     ),
-                                    subtitle: Text("Due: ${task['time']}",
-                                        style: TextStyle(fontSize: 14)),
                                   ),
                                 );
                               },
@@ -319,11 +536,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
-        child: Icon(Icons.add),
-        tooltip: "Add Task",
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
