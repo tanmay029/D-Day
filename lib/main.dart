@@ -1,20 +1,55 @@
-import 'package:dooms_day/pages/home_page.dart';
+import 'package:dooms_day/pages/main_screen.dart';
+import 'package:dooms_day/pages/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final bool isDarkMode = await _loadThemePreference();
+  runApp(MyApp(isDarkMode: isDarkMode));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+Future<bool> _loadThemePreference() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('isDarkMode') ?? false;
+}
+
+class MyApp extends StatefulWidget {
+  final bool isDarkMode;
+  const MyApp({super.key, required this.isDarkMode});
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late bool _isDarkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = widget.isDarkMode;
+  }
+
+  void _toggleTheme() async {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isDarkMode', _isDarkMode);
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'D-Day',
-      initialRoute: "/home",
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      darkTheme: ThemeData.dark(),
+      theme: ThemeData.light(),
+      home: MainScreen(isDarkMode: _isDarkMode, toggleTheme: _toggleTheme),
       routes: {
-        '/home': (_) => HomePage(),
+        '/setting': (_) => const SettingsPage(),
       },
     );
   }

@@ -1,24 +1,27 @@
 import 'package:dooms_day/pages/task_details.dart';
+import 'package:dooms_day/utils/routes.dart';
 import 'package:dooms_day/widget/AddTaskDialog.dart';
 import 'package:dooms_day/widget/ConfirmDeleteDialog.dart';
 import 'package:dooms_day/widget/CustomCalendar.dart';
 import 'package:dooms_day/widget/TaskListForSelectedDay.dart';
 import 'package:dooms_day/widget/TaskListView.dart';
-import 'package:dooms_day/widget/bottomNavigationBar.dart';
 import 'package:dooms_day/widget/month_custom_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final bool isDarkMode;
+  final Function toggleTheme;
+
+  const HomePage(
+      {super.key, required this.isDarkMode, required this.toggleTheme});
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
   bool _isMonthlySelected = true;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -54,12 +57,6 @@ class _HomePageState extends State<HomePage> {
     _loadTasksForMonth(); // Refresh the monthly view
   }
 
-  void _onBottomNavTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   Future<void> _saveTasks() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String tasksJson = jsonEncode(tasks);
@@ -73,7 +70,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         tasks = List<Map<String, dynamic>>.from(jsonDecode(tasksJson));
       });
-      _loadTasksForMonth(); // 🔹 UPDATED: Load tasks for selected month
+      _loadTasksForMonth();
     }
   }
 
@@ -81,10 +78,8 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       tasksForSelectedMonth = tasks.where((task) {
         try {
-          // Ensure proper date parsing
           DateTime taskDate = DateTime.parse(task['date']);
 
-          // Match only tasks for the currently selected month & year
           return taskDate.year == _focusedDay.year &&
               taskDate.month == _focusedDay.month;
         } catch (e) {
@@ -107,7 +102,7 @@ class _HomePageState extends State<HomePage> {
       }
     });
     _saveTasks();
-    _loadTasksForMonth(); // 🔹 UPDATED: Refresh filtered tasks after toggling
+    _loadTasksForMonth();
   }
 
   Map<DateTime, List<Map<String, dynamic>>> _getTaskEvents() {
@@ -148,6 +143,23 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
           title: const Text("Tasks"),
+          leading: IconButton(
+            icon: Icon(widget.isDarkMode
+                ? Icons.wb_sunny_outlined
+                : Icons.nightlight_outlined),
+            onPressed: () {
+              widget.toggleTheme();
+            },
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.settings, color: Colors.white),
+              onPressed: () async {
+                await Navigator.pushNamed(context, MyRoutes.settingRoute);
+                setState(() {});
+              },
+            ),
+          ],
           centerTitle: true,
           backgroundColor: Colors.blueAccent),
       body: SafeArea(
@@ -244,75 +256,76 @@ class _HomePageState extends State<HomePage> {
                           ],
                         ),
                       )
-                    : Column(
-                        children: [
-                          CustomCalendar(
-                            focusedDay: _focusedDay,
-                            selectedDay: _selectedDay,
-                            onDaySelected: (selectedDay, focusedDay) {
-                              setState(() {
-                                _selectedDay = selectedDay;
-                                _focusedDay = focusedDay;
-                              });
-                            },
-                            getTaskEvents: _getTaskEvents,
-                          ),
-                          const SizedBox(height: 20),
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Tasks for ${_selectedDay?.toLocal().toString().split(' ')[0] ?? "Today"}",
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                ElevatedButton.icon(
-                                  onPressed: _showAddTaskDialog,
-                                  icon: const Icon(Icons.add),
-                                  label: const Text("Add Task"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blueAccent,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ],
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            CustomCalendar(
+                              focusedDay: _focusedDay,
+                              selectedDay: _selectedDay,
+                              onDaySelected: (selectedDay, focusedDay) {
+                                setState(() {
+                                  _selectedDay = selectedDay;
+                                  _focusedDay = focusedDay;
+                                });
+                              },
+                              getTaskEvents: _getTaskEvents,
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          Expanded(
-                            child: TaskListForSelectedDay(
-                              tasks: _getTasksForSelectedDay(),
-                              onTaskTap: (task) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        TaskDetailsPage(task: task),
+                            const SizedBox(height: 20),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Tasks for ${_selectedDay?.toLocal().toString().split(' ')[0] ?? "Today"}",
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                );
-                              },
-                              onTaskToggle: (taskName) {
-                                _toggleTaskDone(taskName);
-                              },
-                              onDeleteTask: (task) {
-                                _confirmDeleteTask(task);
-                              },
+                                  ElevatedButton.icon(
+                                    onPressed: _showAddTaskDialog,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text("Add Task"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blueAccent,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height *
+                                  0.6, // Adjust height dynamically
+                              child: TaskListForSelectedDay(
+                                tasks: _getTasksForSelectedDay(),
+                                onTaskTap: (task) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TaskDetailsPage(task: task),
+                                    ),
+                                  );
+                                },
+                                onTaskToggle: (taskName) {
+                                  _toggleTaskDone(taskName);
+                                },
+                                onDeleteTask: (task) {
+                                  _confirmDeleteTask(task);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onBottomNavTapped,
       ),
     );
   }

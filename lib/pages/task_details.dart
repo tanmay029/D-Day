@@ -148,7 +148,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                       padding: EdgeInsets.all(16),
                       margin: EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
+                        color: Colors.blue.shade300,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.blue, width: 2),
                       ),
