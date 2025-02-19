@@ -1,11 +1,8 @@
 import 'package:dooms_day/widget/bottomNavigationBar.dart';
 import 'package:flutter/material.dart';
 import 'home_page.dart';
-import 'search_page.dart';
 import 'alerts_page.dart';
-import 'settings_page.dart';
-import 'profile_page.dart';
-
+import 'health.dart';
 
 class MainScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -19,27 +16,32 @@ class MainScreen extends StatefulWidget {
   _MainScreenState createState() => _MainScreenState();
 }
 
-
-
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  // int _notificationCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // _loadNotificationCount();
+  }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
       HomePage(isDarkMode: widget.isDarkMode, toggleTheme: widget.toggleTheme),
-      const SearchPage(),
+      // const SearchPage(),
       const AlertsPage(),
-      const SettingsPage(),
-      const ProfilePage(),
+      StepTrackerScreen(),
+      // const ProfilePage(),
     ];
 
     return Scaffold(
-      body: _pages[_selectedIndex], 
+      body: _pages[_selectedIndex],
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTapped,
-        isDarkMode: widget.isDarkMode, 
+        hasNotifications: true,
       ),
     );
   }
@@ -50,4 +52,3 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 }
-

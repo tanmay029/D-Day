@@ -1,5 +1,5 @@
 import 'package:dooms_day/pages/main_screen.dart';
-import 'package:dooms_day/pages/settings_page.dart';
+import 'package:dooms_day/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -49,7 +49,7 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light(),
       home: MainScreen(isDarkMode: _isDarkMode, toggleTheme: _toggleTheme),
       routes: {
-        '/setting': (_) => const SettingsPage(),
+        '/setting': (_) => SearchPage(),
       },
     );
   }

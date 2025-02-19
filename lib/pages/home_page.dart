@@ -25,12 +25,14 @@ class _HomePageState extends State<HomePage> {
   bool _isMonthlySelected = true;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  int notificationCount = 0;
 
   List<Map<String, dynamic>> tasks = [];
   List<Map<String, dynamic>> tasksForSelectedMonth = [];
   @override
   void initState() {
     super.initState();
+    _selectedDay = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadTasks();
     });
@@ -107,11 +109,27 @@ class _HomePageState extends State<HomePage> {
 
   Map<DateTime, List<Map<String, dynamic>>> _getTaskEvents() {
     Map<DateTime, List<Map<String, dynamic>>> events = {};
+    Map<DateTime, bool> completionStatus = {};
+
     for (var task in tasks) {
       DateTime taskDate = DateTime.parse(task['date']);
       events[taskDate] = events[taskDate] ?? [];
       events[taskDate]!.add(task);
+
+      // Check if all tasks for this date are completed
+      if (!completionStatus.containsKey(taskDate)) {
+        completionStatus[taskDate] = true; // Assume all are completed
+      }
+      if (!task['done']) {
+        completionStatus[taskDate] = false; // At least one task is incomplete
+      }
     }
+
+    // Add completionStatus flag to each event list
+    events.forEach((date, tasks) {
+      tasks.add({'allCompleted': completionStatus[date] ?? false});
+    });
+
     return events;
   }
 
@@ -209,6 +227,8 @@ class _HomePageState extends State<HomePage> {
                                 _loadTasksForMonth();
                               },
                               getTaskEvents: _getTaskEvents,
+                              isDarkMode: Theme.of(context).brightness ==
+                                  Brightness.dark,
                             ),
                             const SizedBox(height: 20),
                             Padding(
@@ -269,6 +289,8 @@ class _HomePageState extends State<HomePage> {
                                 });
                               },
                               getTaskEvents: _getTaskEvents,
+                              isDarkMode: Theme.of(context).brightness ==
+                                  Brightness.dark,
                             ),
                             const SizedBox(height: 20),
                             Padding(
