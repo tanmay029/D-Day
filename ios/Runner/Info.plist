@@ -45,5 +45,28 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- 🔹 Required Permissions for Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<!-- 🔹 Permissions for Local Notifications -->
+	<key>NSLocalNotificationAlertLevel</key>
+	<integer>2</integer>
+	<key>NSUserNotificationAlertLevel</key>
+	<integer>2</integer>
+
+	<!-- 🔹 Permission for requesting notifications -->
+	<key>NSPrivacy - Local Network Usage Description</key>
+	<string>This app uses notifications to alert you about important tasks.</string>
 </dict>
 </plist>
