@@ -1,7 +1,12 @@
+// ignore_for_file: sized_box_for_whitespace
+
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'dart:math';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TaskDetailsPage extends StatefulWidget {
   final Map<String, dynamic> task;
@@ -17,6 +22,9 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
   Duration remainingTime = Duration.zero;
   late Timer _timer;
   late String selectedQuote;
+
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   final List<String> motivationalQuotes = [
     "Success is not final, failure is not fatal: it is the courage to continue that counts.",
@@ -40,6 +48,10 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
     setState(() {
       remainingTime = taskDeadline.difference(DateTime.now());
     });
+
+    if (remainingTime.inHours < 4 && remainingTime.inSeconds > 0) {
+      sendTaskReminder(widget.task['task'], remainingTime.inHours);
+    }
   }
 
   void _startTimer() {
@@ -53,6 +65,40 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
         remainingTime = newRemainingTime;
       });
     });
+  }
+
+  Future<void> sendTaskReminder(String taskName, int remainingHours) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int lastNotificationTime = prefs.getInt('lastNotificationTime') ?? 0;
+
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+    int timeDifference = currentTime - lastNotificationTime;
+
+    if (timeDifference < 1800000) {
+      print(
+          "Skipping notification: Last notification was sent less than 30 minutes ago.");
+      return;
+    }
+
+    await prefs.setInt('lastNotificationTime', currentTime);
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'task_reminder_channel',
+      'Task Reminders',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      "Task Reminder",
+      "$taskName is due in $remainingHours hour(s)!",
+      platformChannelSpecifics,
+    );
   }
 
   String formatDuration(Duration duration) {

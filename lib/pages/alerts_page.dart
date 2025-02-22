@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
+// import '../main.dart';
 import 'task_details.dart';
 import 'package:intl/intl.dart';
 
@@ -15,11 +17,15 @@ class AlertsPage extends StatefulWidget {
 class _AlertsPageState extends State<AlertsPage> {
   List<Map<String, dynamic>> tasks = [];
   late Timer _timer;
+  DateTime? _lastNotificationTime;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     super.initState();
     _loadTasks();
+    _initializeNotifications();
     _startTimer();
   }
 
@@ -27,6 +33,16 @@ class _AlertsPageState extends State<AlertsPage> {
   void dispose() {
     _timer.cancel();
     super.dispose();
+  }
+
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   Future<void> _loadTasks() async {
@@ -43,13 +59,47 @@ class _AlertsPageState extends State<AlertsPage> {
         print(
             "TASK PARSED: $taskDateTime (Original: ${task['date']} ${task['time']})");
       }
+      _scheduleNotifications();
     }
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {});
+      setState(() {}); // Update UI countdown every second
+
+      // Schedule notifications ONLY if 30 minutes have passed
+      if (_lastNotificationTime == null ||
+          DateTime.now().difference(_lastNotificationTime!).inMinutes >= 30) {
+        _scheduleNotifications();
+      }
     });
+  }
+
+  Future<void> _scheduleNotifications() async {
+    DateTime now = DateTime.now();
+
+    // Prevent sending a notification immediately on page load
+    if (_lastNotificationTime != null &&
+        now.difference(_lastNotificationTime!).inMinutes < 30) {
+      return; // Stop if last notification was less than 30 min ago
+    }
+
+    for (var task in tasks) {
+      if (task['done'] == true) continue; // Skip completed tasks
+
+      DateTime taskDeadline = DateFormat("yyyy-MM-dd HH:mm a")
+          .parse("${task['date']} ${task['time']}");
+
+      Duration diff = taskDeadline.difference(now);
+      int remainingMinutes = diff.inMinutes;
+
+      // Send notification ONLY at 4hr, 3.5hr, 3hr, 2.5hr, etc.
+      if (remainingMinutes % 30 == 0 && remainingMinutes <= 240) {
+        _sendNotification(task['task'], remainingMinutes ~/ 60);
+        _lastNotificationTime = now; // Update last sent time
+        break; // Stop after sending one notification
+      }
+    }
   }
 
   List<Map<String, dynamic>> _getFilteredTasks(int minDays, int maxDays) {
@@ -147,6 +197,43 @@ class _AlertsPageState extends State<AlertsPage> {
   Future<void> _saveTasks() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('tasks', jsonEncode(tasks));
+  }
+
+  // Future<void> _scheduleNotifications() async {
+  //   DateTime now = DateTime.now();
+  //   for (var task in tasks) {
+  //     if (task['done'] == true) continue;
+
+  //     DateTime taskDeadline = DateFormat("yyyy-MM-dd HH:mm a")
+  //         .parse("${task['date']} ${task['time']}");
+
+  //     Duration diff = taskDeadline.difference(now);
+  //     int remainingHours = diff.inHours;
+
+  //     if (remainingHours > 0 && remainingHours <= 4) {
+  //       _sendNotification(task['task'], remainingHours);
+  //     }
+  //   }
+  // }
+
+  Future<void> _sendNotification(String taskName, int remainingHours) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'task_alerts',
+      'Task Alerts',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      "Task Reminder",
+      "Task: $taskName\n$remainingHours hour(s) remaining!",
+      platformChannelSpecifics,
+    );
   }
 
   @override

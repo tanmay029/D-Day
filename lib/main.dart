@@ -1,25 +1,40 @@
 import 'package:dooms_day/pages/main_screen.dart';
-import 'package:dooms_day/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-void requestPermission() async {
-  var status = await Permission.activityRecognition.request();
-  if (status.isDenied) {
-    print("Permission Denied");
-  }
-}
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await requestNotificationPermission();
+  initNotifications();
   final bool isDarkMode = await _loadThemePreference();
   runApp(MyApp(isDarkMode: isDarkMode));
+}
+
+Future<void> requestNotificationPermission() async {
+  var status = await Permission.notification.request();
+  if (status.isDenied) {
+    print("Notification Permission Denied");
+  }
 }
 
 Future<bool> _loadThemePreference() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.getBool('isDarkMode') ?? false;
+}
+
+void initNotifications() {
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  final InitializationSettings initializationSettings =
+      InitializationSettings(android: initializationSettingsAndroid);
+
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  flutterLocalNotificationsPlugin.initialize(initializationSettings);
 }
 
 class MyApp extends StatefulWidget {
@@ -35,7 +50,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void initState() {
-    requestPermission();
     super.initState();
     _isDarkMode = widget.isDarkMode;
   }
@@ -57,9 +71,6 @@ class _MyAppState extends State<MyApp> {
       darkTheme: ThemeData.dark(),
       theme: ThemeData.light(),
       home: MainScreen(isDarkMode: _isDarkMode, toggleTheme: _toggleTheme),
-      routes: {
-        '/setting': (_) => SearchPage(),
-      },
     );
   }
 }

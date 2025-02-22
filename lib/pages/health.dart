@@ -1,9 +1,11 @@
+// ignore_for_file: use_key_in_widget_constructors
+
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+// import 'package:flutter_background_service/flutter_background_service.dart';
 
 class StepTrackerScreen extends StatefulWidget {
   @override
