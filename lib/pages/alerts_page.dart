@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'task_details.dart';
+import 'package:intl/intl.dart';
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({Key? key}) : super(key: key);
@@ -12,11 +14,19 @@ class AlertsPage extends StatefulWidget {
 
 class _AlertsPageState extends State<AlertsPage> {
   List<Map<String, dynamic>> tasks = [];
+  late Timer _timer;
 
   @override
   void initState() {
     super.initState();
     _loadTasks();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
   }
 
   Future<void> _loadTasks() async {
@@ -29,19 +39,47 @@ class _AlertsPageState extends State<AlertsPage> {
     }
   }
 
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {});
+    });
+  }
+
   List<Map<String, dynamic>> _getFilteredTasks(int minDays, int maxDays) {
     DateTime now = DateTime.now();
     return tasks.where((task) {
-      DateTime taskDate = DateTime.parse(task['date']);
-      int difference = taskDate.difference(now).inDays;
-      return difference >= minDays && difference <= maxDays;
+      DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm")
+          .parse("${task['date']} ${task['time']}");
+
+      // Exclude overdue tasks and completed tasks
+      if (!taskDateTime.isAfter(now) || task['done'] == true) {
+        return false;
+      }
+
+      int remainingHours = taskDateTime.difference(now).inHours;
+      int remainingDays = remainingHours ~/ 24;
+
+      return remainingDays >= minDays && remainingDays <= maxDays;
     }).toList();
+  }
+
+  /// Formats time remaining correctly with live countdown
+  String _formatTimeRemaining(DateTime taskDateTime) {
+    DateTime now = DateTime.now();
+    Duration timeRemaining = taskDateTime.difference(now);
+
+    int days = timeRemaining.inDays;
+    int hours = timeRemaining.inHours.remainder(24);
+    int minutes = timeRemaining.inMinutes.remainder(60);
+    int seconds = timeRemaining.inSeconds.remainder(60);
+
+    return "$days d $hours h $minutes m $seconds s";
   }
 
   Widget _buildTaskList(
       String title, Color color, List<Map<String, dynamic>> taskList) {
     return taskList.isEmpty
-        ? SizedBox()
+        ? const SizedBox()
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -55,16 +93,17 @@ class _AlertsPageState extends State<AlertsPage> {
               ),
               ListView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: taskList.length,
                 itemBuilder: (context, index) {
                   var task = taskList[index];
-                  DateTime taskDate = DateTime.parse(task['date']);
-                  Duration timeRemaining = taskDate.difference(DateTime.now());
+                  DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm")
+                      .parse("${task['date']} ${task['time']}");
+
                   return ListTile(
                     title: Text(task['task']),
                     subtitle: Text(
-                        "Due: ${task['date']} \nTime Remaining: ${timeRemaining.inDays} days, ${timeRemaining.inHours % 24} hours"),
+                        "Due: ${task['date']} ${task['time']} \nTime Remaining: ${_formatTimeRemaining(taskDateTime)}"),
                     trailing: Checkbox(
                       value: task['done'],
                       onChanged: (bool? newValue) {
@@ -98,12 +137,12 @@ class _AlertsPageState extends State<AlertsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Alerts"),
+        title: const Text("Alerts"),
         actions: [
           Stack(
             children: [
               IconButton(
-                icon: Icon(Icons.notifications),
+                icon: const Icon(Icons.notifications),
                 onPressed: () {},
               ),
               Positioned(
@@ -114,7 +153,7 @@ class _AlertsPageState extends State<AlertsPage> {
                   backgroundColor: Colors.red,
                   child: Text(
                     _getFilteredTasks(0, 6).length.toString(),
-                    style: TextStyle(fontSize: 12, color: Colors.white),
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
                   ),
                 ),
               ),
@@ -127,10 +166,10 @@ class _AlertsPageState extends State<AlertsPage> {
           children: [
             _buildTaskList("Urgent (Less than a day left)", Colors.red,
                 _getFilteredTasks(0, 0)),
-            _buildTaskList("High Priority (1-3 days left)", Colors.blue,
-                _getFilteredTasks(1, 3)),
-            _buildTaskList("Moderate Priority (4-7 days left)", Colors.green,
-                _getFilteredTasks(4, 6)),
+            _buildTaskList("High Priority (1-2 days left)", Colors.blue,
+                _getFilteredTasks(1, 2)),
+            _buildTaskList("Medium/Low Priority (3-6 days left)", Colors.green,
+                _getFilteredTasks(3, 6)),
           ],
         ),
       ),

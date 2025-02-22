@@ -73,6 +73,21 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
   Widget build(BuildContext context) {
     bool isCompleted = widget.task['done'];
     bool isOverdue = remainingTime.isNegative && !isCompleted;
+    // bool isNearFailure = remainingTime.inHours < 2 && remainingTime.inSeconds > 0;
+
+    String gifPath = "";
+    String titleText = "";
+
+    if (isCompleted) {
+      gifPath = "lib/assets/gif/success.gif";
+      titleText = "🎉 Congratulations! You have done it! 🎉";
+    } else if (isOverdue) {
+      gifPath = "lib/assets/gif/failed.gif";
+      titleText = "❌ Task Failed ❌";
+    } else {
+      gifPath = "lib/assets/gif/near_fail.gif";
+      titleText = "Can you do this task?";
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text("Task Details"), centerTitle: true),
@@ -83,20 +98,31 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                isCompleted
-                    ? Icons.check_circle
-                    : isOverdue
-                        ? Icons.cancel
-                        : Icons.access_time,
-                size: 100,
-                color: isCompleted
-                    ? Colors.green
-                    : isOverdue
-                        ? Colors.red
-                        : Colors.orange,
+              // Title Text for Success and Failed Tasks
+              Text(
+                titleText,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isCompleted
+                      ? Colors.green
+                      : isOverdue
+                          ? Colors.red
+                          : Colors.orange.shade700,
+                ),
+                textAlign: TextAlign.center,
               ),
+              SizedBox(height: 10),
+
+              // GIF Display
+              Container(
+                height: 200,
+                width: 200,
+                child: Image.asset(gifPath, fit: BoxFit.cover),
+              ),
+
               SizedBox(height: 20),
+
               Text(
                 widget.task['task'],
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -109,7 +135,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               SizedBox(height: 30),
 
-              // Timer Section
+              // Timer Section (Only if task is not completed or failed)
               if (!isCompleted && !isOverdue)
                 Column(
                   children: [
@@ -189,22 +215,6 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              SizedBox(height: 30),
-
-              // Back Button
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("Back to Home",
-                    style: TextStyle(fontSize: 18, color: Colors.white)),
-              ),
             ],
           ),
         ),

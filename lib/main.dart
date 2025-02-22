@@ -2,6 +2,14 @@ import 'package:dooms_day/pages/main_screen.dart';
 import 'package:dooms_day/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+void requestPermission() async {
+  var status = await Permission.activityRecognition.request();
+  if (status.isDenied) {
+    print("Permission Denied");
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +35,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void initState() {
+    requestPermission();
     super.initState();
     _isDarkMode = widget.isDarkMode;
   }

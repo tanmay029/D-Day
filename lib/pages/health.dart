@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:pedometer/pedometer.dart';
 
 class StepTrackerScreen extends StatefulWidget {
   @override
@@ -7,12 +8,35 @@ class StepTrackerScreen extends StatefulWidget {
 }
 
 class _StepTrackerScreenState extends State<StepTrackerScreen> {
-  int currentSteps = 1002;
+  int currentSteps = 0;
   int goalSteps = 10000;
+  late Stream<StepCount> _stepCountStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPedometer();
+  }
+
+  void _initPedometer() {
+    _stepCountStream = Pedometer.stepCountStream;
+    _stepCountStream.listen(_onStepCount).onError(_onStepError);
+  }
+
+  void _onStepCount(StepCount event) {
+    setState(() {
+      currentSteps = event.steps; // Update the step count
+    });
+  }
+
+  void _onStepError(error) {
+    print("Pedometer error: $error");
+  }
 
   @override
   Widget build(BuildContext context) {
-    double percentage = currentSteps / goalSteps;
+    double percentage = (currentSteps / goalSteps).clamp(0.0, 1.0);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text("Beta Testing"),
@@ -22,8 +46,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            StepProgressIndicator(
-                currentSteps: currentSteps, percentage: percentage),
+            StepProgressIndicator(currentSteps: currentSteps, percentage: percentage),
             SizedBox(height: 20),
             GoalSelectionWidget(
               goalSteps: goalSteps,
