@@ -1,4 +1,4 @@
-// ignore_for_file: sized_box_for_whitespace
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -119,7 +119,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
   Widget build(BuildContext context) {
     bool isCompleted = widget.task['done'];
     bool isOverdue = remainingTime.isNegative && !isCompleted;
-    // bool isNearFailure = remainingTime.inHours < 2 && remainingTime.inSeconds > 0;
+    
 
     String gifPath = "";
     String titleText = "";
@@ -144,7 +144,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Title Text for Success and Failed Tasks
+              
               Text(
                 titleText,
                 style: TextStyle(
@@ -160,7 +160,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
               ),
               SizedBox(height: 10),
 
-              // GIF Display
+              
               Container(
                 height: 200,
                 width: 200,
@@ -181,7 +181,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               SizedBox(height: 30),
 
-              // Timer Section (Only if task is not completed or failed)
+              
               if (!isCompleted && !isOverdue)
                 Column(
                   children: [
@@ -215,7 +215,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                     ),
                     SizedBox(height: 20),
 
-                    // Motivational Quote
+                    
                     Container(
                       padding: EdgeInsets.all(16),
                       margin: EdgeInsets.symmetric(horizontal: 10),
@@ -236,7 +236,7 @@ class _TaskDetailsPageState extends State<TaskDetailsPage> {
                   ],
                 ),
 
-              // Completion / Overdue Messages
+              
               if (isCompleted)
                 Padding(
                   padding: const EdgeInsets.all(20.0),

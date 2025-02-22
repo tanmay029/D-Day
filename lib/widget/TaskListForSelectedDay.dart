@@ -32,14 +32,14 @@ class TaskListForSelectedDay extends StatelessWidget {
             onTap: () => onTaskTap(task),
             child: ListTile(
               leading: isOverdue
-                  ? const Icon(Icons.cancel, color: Colors.red) // ❌ Overdue
+                  ? const Icon(Icons.cancel, color: Colors.red) 
                   : isCompleted
                       ? const Icon(Icons.check_circle,
-                          color: Colors.green) // ✅ Completed
+                          color: Colors.green) 
                       : Checkbox(
                           value: task['done'],
                           onChanged: task['done']
-                              ? null // Disable once checked
+                              ? null 
                               : (bool? value) => onTaskToggle(task['task']),
                         ),
               title: Text(

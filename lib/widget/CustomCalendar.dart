@@ -14,7 +14,7 @@ class CustomCalendar extends StatelessWidget {
     required this.selectedDay,
     required this.onDaySelected,
     required this.getTaskEvents,
-    required this.isDarkMode, // Added to track the theme mode
+    required this.isDarkMode, 
   }) : super(key: key);
 
   @override
@@ -32,16 +32,16 @@ class CustomCalendar extends StatelessWidget {
         outsideDaysVisible: true,
         defaultTextStyle: TextStyle(
           color: isDarkMode ? Colors.white : Colors.black,
-        ), // White (Dark Mode), Black (Light Mode)
+        ), 
         weekendTextStyle: TextStyle(
           color: isDarkMode ? Colors.white : Colors.black,
-        ), // White (Dark Mode), Black (Light Mode)
+        ),
         outsideTextStyle: TextStyle(
           color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade500,
-        ), // Dark grey (Dark Mode), Light grey (Light Mode)
+        ), 
         disabledTextStyle: TextStyle(
           color: isDarkMode ? Colors.white : Colors.grey.shade500,
-        ), // White (Dark Mode), Grey (Light Mode)
+        ), 
         selectedDecoration:
             BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
         todayDecoration: BoxDecoration(

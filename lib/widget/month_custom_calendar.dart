@@ -7,7 +7,7 @@ class CustomCalendar2 extends StatelessWidget {
   final Function(DateTime, DateTime) onDaySelected;
   final Function(DateTime) onPageChanged;
   final Map<DateTime, List<dynamic>> Function() getTaskEvents;
-  final bool isDarkMode; // Added to track the current theme mode
+  final bool isDarkMode; 
 
   const CustomCalendar2({
     Key? key,
@@ -16,7 +16,7 @@ class CustomCalendar2 extends StatelessWidget {
     required this.onDaySelected,
     required this.onPageChanged,
     required this.getTaskEvents,
-    required this.isDarkMode, // Pass dark mode status
+    required this.isDarkMode, 
   }) : super(key: key);
 
   @override
@@ -32,19 +32,19 @@ class CustomCalendar2 extends StatelessWidget {
       eventLoader: (day) =>
           getTaskEvents()[DateTime(day.year, day.month, day.day)] ?? [],
       calendarStyle: CalendarStyle(
-        outsideDaysVisible: true, // Show previous & next month days
+        outsideDaysVisible: true, 
         defaultTextStyle: TextStyle(
           color: isDarkMode ? Colors.white : Colors.black,
-        ), // White in dark mode, Black in light mode
+        ), 
         weekendTextStyle: TextStyle(
           color: isDarkMode ? Colors.white : Colors.black,
-        ), // Adjust weekend colors
+        ), 
         outsideTextStyle: TextStyle(
           color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade500,
-        ), // Dark grey for previous & next month (Dark Mode), Light Grey (Light Mode)
+        ), 
         disabledTextStyle: TextStyle(
           color: isDarkMode ? Colors.white : Colors.grey.shade500,
-        ), // White (Dark Mode), Grey (Light Mode)
+        ), 
         selectedDecoration: BoxDecoration(
           color: Colors.blueAccent,
           shape: BoxShape.circle,
@@ -73,11 +73,11 @@ class CustomCalendar2 extends StatelessWidget {
                     ? (isDarkMode
                         ? Colors.white
                         : Colors.grey
-                            .shade500) // White in Dark Mode, Grey in Light Mode
+                            .shade500)
                     : (isDarkMode
                         ? Colors.white
                         : Colors
-                            .black), // White in Dark Mode, Black in Light Mode
+                            .black), 
               ),
             ),
           );
@@ -90,7 +90,7 @@ class CustomCalendar2 extends StatelessWidget {
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                  color: Colors.red, // Dot color for events
+                  color: Colors.red, 
                   shape: BoxShape.circle,
                 ),
               ),

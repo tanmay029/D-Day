@@ -18,22 +18,22 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  // int _notificationCount = 0;
+  
 
   @override
   void initState() {
     super.initState();
-    // _loadNotificationCount();
+    
   }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
       HomePage(isDarkMode: widget.isDarkMode, toggleTheme: widget.toggleTheme),
-      // const SearchPage(),
+      
       const AlertsPage(),
       StepTrackerScreen(),
-      // const ProfilePage(),
+      
     ];
 
     return Scaffold(

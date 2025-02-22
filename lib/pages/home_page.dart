@@ -55,8 +55,8 @@ class _HomePageState extends State<HomePage> {
       tasks.removeWhere(
           (t) => t['task'] == task['task'] && t['date'] == task['date']);
     });
-    _saveTasks(); // Save updated task list
-    _loadTasksForMonth(); // Refresh the monthly view
+    _saveTasks(); 
+    _loadTasksForMonth(); 
   }
 
   Future<void> _saveTasks() async {
@@ -91,8 +91,8 @@ class _HomePageState extends State<HomePage> {
       }).toList();
 
       // Debugging log
-      print(
-          "Loaded tasks for ${_focusedDay.month}/${_focusedDay.year}: $tasksForSelectedMonth");
+      // print(
+      //     "Loaded tasks for ${_focusedDay.month}/${_focusedDay.year}: $tasksForSelectedMonth");
     });
   }
 
@@ -116,16 +116,16 @@ class _HomePageState extends State<HomePage> {
       events[taskDate] = events[taskDate] ?? [];
       events[taskDate]!.add(task);
 
-      // Check if all tasks for this date are completed
+      
       if (!completionStatus.containsKey(taskDate)) {
-        completionStatus[taskDate] = true; // Assume all are completed
+        completionStatus[taskDate] = true; 
       }
       if (!task['done']) {
-        completionStatus[taskDate] = false; // At least one task is incomplete
+        completionStatus[taskDate] = false; 
       }
     }
 
-    // Add completionStatus flag to each event list
+    
     events.forEach((date, tasks) {
       tasks.add({'allCompleted': completionStatus[date] ?? false});
     });
@@ -321,7 +321,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(height: 10),
                             SizedBox(
                               height: MediaQuery.of(context).size.height *
-                                  0.6, // Adjust height dynamically
+                                  0.6, 
                               child: TaskListForSelectedDay(
                                 tasks: _getTasksForSelectedDay(),
                                 onTaskTap: (task) {

@@ -3,7 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
-// import '../main.dart';
+
 import 'task_details.dart';
 import 'package:intl/intl.dart';
 
@@ -65,9 +65,9 @@ class _AlertsPageState extends State<AlertsPage> {
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {}); // Update UI countdown every second
+      setState(() {}); 
 
-      // Schedule notifications ONLY if 30 minutes have passed
+      
       if (_lastNotificationTime == null ||
           DateTime.now().difference(_lastNotificationTime!).inMinutes >= 30) {
         _scheduleNotifications();
@@ -78,14 +78,14 @@ class _AlertsPageState extends State<AlertsPage> {
   Future<void> _scheduleNotifications() async {
     DateTime now = DateTime.now();
 
-    // Prevent sending a notification immediately on page load
+    
     if (_lastNotificationTime != null &&
         now.difference(_lastNotificationTime!).inMinutes < 30) {
-      return; // Stop if last notification was less than 30 min ago
+      return;
     }
 
     for (var task in tasks) {
-      if (task['done'] == true) continue; // Skip completed tasks
+      if (task['done'] == true) continue; 
 
       DateTime taskDeadline = DateFormat("yyyy-MM-dd HH:mm a")
           .parse("${task['date']} ${task['time']}");
@@ -93,11 +93,11 @@ class _AlertsPageState extends State<AlertsPage> {
       Duration diff = taskDeadline.difference(now);
       int remainingMinutes = diff.inMinutes;
 
-      // Send notification ONLY at 4hr, 3.5hr, 3hr, 2.5hr, etc.
+
       if (remainingMinutes % 30 == 0 && remainingMinutes <= 240) {
         _sendNotification(task['task'], remainingMinutes ~/ 60);
-        _lastNotificationTime = now; // Update last sent time
-        break; // Stop after sending one notification
+        _lastNotificationTime = now; 
+        break; 
       }
     }
   }
@@ -108,23 +108,22 @@ class _AlertsPageState extends State<AlertsPage> {
       DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm a")
           .parse("${task['date']} ${task['time']}");
 
-      // Exclude overdue and completed tasks
+
       if (!taskDateTime.isAfter(now) || task['done'] == true) {
         return false;
       }
 
       Duration diff = taskDateTime.difference(now);
-      int remainingDays = diff.inHours ~/ 24; // Convert hours to full days
-      int remainingHours = diff.inHours.remainder(24); // Get remaining hours
+      int remainingDays = diff.inHours ~/ 24; 
+      int remainingHours = diff.inHours.remainder(24);
 
       return (remainingDays >= minDays && remainingDays <= maxDays) ||
           (remainingDays == maxDays &&
               remainingHours >
-                  0); // Ensures tasks close to maxDays are included
+                  0); 
     }).toList();
   }
 
-  /// Formats time remaining correctly with live countdown
   String _formatTimeRemaining(DateTime taskDateTime) {
     DateTime now = DateTime.now();
     Duration timeRemaining = taskDateTime.difference(now);
@@ -199,22 +198,7 @@ class _AlertsPageState extends State<AlertsPage> {
     await prefs.setString('tasks', jsonEncode(tasks));
   }
 
-  // Future<void> _scheduleNotifications() async {
-  //   DateTime now = DateTime.now();
-  //   for (var task in tasks) {
-  //     if (task['done'] == true) continue;
 
-  //     DateTime taskDeadline = DateFormat("yyyy-MM-dd HH:mm a")
-  //         .parse("${task['date']} ${task['time']}");
-
-  //     Duration diff = taskDeadline.difference(now);
-  //     int remainingHours = diff.inHours;
-
-  //     if (remainingHours > 0 && remainingHours <= 4) {
-  //       _sendNotification(task['task'], remainingHours);
-  //     }
-  //   }
-  // }
 
   Future<void> _sendNotification(String taskName, int remainingHours) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =

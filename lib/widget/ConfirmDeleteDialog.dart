@@ -17,13 +17,13 @@ class ConfirmDeleteDialog extends StatelessWidget {
       content: Text("Are you sure you want to delete '$taskName'?"),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(), // Close dialog
+          onPressed: () => Navigator.of(context).pop(), 
           child: const Text("Cancel"),
         ),
         TextButton(
           onPressed: () {
             onDelete();
-            Navigator.of(context).pop(); // Close dialog after deleting
+            Navigator.of(context).pop(); 
           },
           child: const Text("Delete", style: TextStyle(color: Colors.red)),
         ),

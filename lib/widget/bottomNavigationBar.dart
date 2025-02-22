@@ -17,19 +17,18 @@ class CustomBottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: onTap,
-      type: BottomNavigationBarType.fixed, // Ensures visibility of all items
+      type: BottomNavigationBarType.fixed, 
       items: [
         const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        // const BottomNavigationBarItem(
-        //     icon: Icon(Icons.settings), label: "Settings"),
+        
         BottomNavigationBarItem(
           icon: Stack(
-            clipBehavior: Clip.none, // Allows positioning outside the stack
+            clipBehavior: Clip.none, 
             children: [
               const Icon(Icons.notifications),
               if (hasNotifications)
                 Positioned(
-                  right: -2, // Moves the dot slightly outside the icon
+                  right: -2, 
                   top: -2,
                   child: Container(
                     width: 10,
@@ -46,8 +45,6 @@ class CustomBottomNavBar extends StatelessWidget {
         ),
         const BottomNavigationBarItem(
             icon: Icon(Icons.monitor_heart_outlined), label: "Health"),
-        // const BottomNavigationBarItem(
-        //     icon: Icon(Icons.person), label: "Profile"),
       ],
     );
   }

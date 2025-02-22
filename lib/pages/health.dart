@@ -1,13 +1,12 @@
-// ignore_for_file: use_key_in_widget_constructors
-
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-// import 'package:flutter_background_service/flutter_background_service.dart';
 
 class StepTrackerScreen extends StatefulWidget {
+  const StepTrackerScreen({super.key});
+
   @override
   _StepTrackerScreenState createState() => _StepTrackerScreenState();
 }
@@ -167,8 +166,8 @@ class StepProgressIndicator extends StatelessWidget {
   final int goalSteps;
   final double percentage;
 
-  StepProgressIndicator(
-      {required this.currentSteps,
+  const StepProgressIndicator(
+      {super.key, required this.currentSteps,
       required this.goalSteps,
       required this.percentage});
 
