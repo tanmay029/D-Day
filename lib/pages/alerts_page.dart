@@ -36,6 +36,13 @@ class _AlertsPageState extends State<AlertsPage> {
       setState(() {
         tasks = List<Map<String, dynamic>>.from(jsonDecode(tasksJson));
       });
+
+      for (var task in tasks) {
+        DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm a")
+            .parse("${task['date']} ${task['time']}");
+        print(
+            "TASK PARSED: $taskDateTime (Original: ${task['date']} ${task['time']})");
+      }
     }
   }
 
@@ -48,18 +55,22 @@ class _AlertsPageState extends State<AlertsPage> {
   List<Map<String, dynamic>> _getFilteredTasks(int minDays, int maxDays) {
     DateTime now = DateTime.now();
     return tasks.where((task) {
-      DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm")
+      DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm a")
           .parse("${task['date']} ${task['time']}");
 
-      // Exclude overdue tasks and completed tasks
+      // Exclude overdue and completed tasks
       if (!taskDateTime.isAfter(now) || task['done'] == true) {
         return false;
       }
 
-      int remainingHours = taskDateTime.difference(now).inHours;
-      int remainingDays = remainingHours ~/ 24;
+      Duration diff = taskDateTime.difference(now);
+      int remainingDays = diff.inHours ~/ 24; // Convert hours to full days
+      int remainingHours = diff.inHours.remainder(24); // Get remaining hours
 
-      return remainingDays >= minDays && remainingDays <= maxDays;
+      return (remainingDays >= minDays && remainingDays <= maxDays) ||
+          (remainingDays == maxDays &&
+              remainingHours >
+                  0); // Ensures tasks close to maxDays are included
     }).toList();
   }
 
@@ -68,8 +79,13 @@ class _AlertsPageState extends State<AlertsPage> {
     DateTime now = DateTime.now();
     Duration timeRemaining = taskDateTime.difference(now);
 
+    if (timeRemaining.isNegative) {
+      return "Time Over";
+    }
+
     int days = timeRemaining.inDays;
-    int hours = timeRemaining.inHours.remainder(24);
+    int totalHours = timeRemaining.inHours;
+    int hours = totalHours - (days * 24);
     int minutes = timeRemaining.inMinutes.remainder(60);
     int seconds = timeRemaining.inSeconds.remainder(60);
 
@@ -97,7 +113,7 @@ class _AlertsPageState extends State<AlertsPage> {
                 itemCount: taskList.length,
                 itemBuilder: (context, index) {
                   var task = taskList[index];
-                  DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm")
+                  DateTime taskDateTime = DateFormat("yyyy-MM-dd HH:mm a")
                       .parse("${task['date']} ${task['time']}");
 
                   return ListTile(
@@ -161,17 +177,15 @@ class _AlertsPageState extends State<AlertsPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildTaskList("Urgent (Less than a day left)", Colors.red,
-                _getFilteredTasks(0, 0)),
-            _buildTaskList("High Priority (1-2 days left)", Colors.blue,
-                _getFilteredTasks(1, 2)),
-            _buildTaskList("Medium/Low Priority (3-6 days left)", Colors.green,
-                _getFilteredTasks(3, 6)),
-          ],
-        ),
+      body: ListView(
+        children: [
+          _buildTaskList("Urgent (Less than a day left)", Colors.red,
+              _getFilteredTasks(0, 0)),
+          _buildTaskList("High Priority (1-2 days left)", Colors.blue,
+              _getFilteredTasks(1, 2)),
+          _buildTaskList("Medium/Low Priority (3-6 days left)", Colors.green,
+              _getFilteredTasks(3, 6)),
+        ],
       ),
     );
   }
