@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1090780960469",
+    "project_id": "dday-ecaf3",
+    "storage_bucket": "dday-ecaf3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090780960469:android:a334436868b27bba98345c",
+        "android_client_info": {
+          "package_name": "com.maxp.dooms_day"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6wCpKW9O6kjEIrcbPqrQ7Pn7hMUFpIQw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

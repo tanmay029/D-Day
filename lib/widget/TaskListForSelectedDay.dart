@@ -23,7 +23,10 @@ class TaskListForSelectedDay extends StatelessWidget {
         DateTime now = DateTime.now();
         DateTime taskDate = DateTime.parse(task['date']);
 
-        bool isOverdue = now.isAfter(taskDate) && !task['done'];
+        bool isOverdue =
+            now.isAfter(taskDate.add(const Duration(minutes: 1))) &&
+                !task['done'];
+
         bool isCompleted = task['done'];
 
         return Card(
@@ -32,14 +35,13 @@ class TaskListForSelectedDay extends StatelessWidget {
             onTap: () => onTaskTap(task),
             child: ListTile(
               leading: isOverdue
-                  ? const Icon(Icons.cancel, color: Colors.red) 
+                  ? const Icon(Icons.cancel, color: Colors.red)
                   : isCompleted
-                      ? const Icon(Icons.check_circle,
-                          color: Colors.green) 
+                      ? const Icon(Icons.check_circle, color: Colors.green)
                       : Checkbox(
                           value: task['done'],
                           onChanged: task['done']
-                              ? null 
+                              ? null
                               : (bool? value) => onTaskToggle(task['task']),
                         ),
               title: Text(
